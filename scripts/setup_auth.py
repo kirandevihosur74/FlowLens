@@ -47,15 +47,19 @@ def launch_chrome_with_profile(app_name: str, app_url: str) -> None:
     profile_dir.mkdir(parents=True, exist_ok=True)
     cleanup_singleton_locks(profile_dir)
 
-    print("\n" + "=" * 70)
-    print(f"🔐 AUTHENTICATION SETUP: {app_name}")
-    print("=" * 70)
-    print(f"Profile directory: {profile_dir}")
-    print(f"URL: {app_url}")
-    print("\nInstructions:")
-    print("1. Chrome will open with a dedicated profile.")
-    print("2. Complete the login flow manually.")
-    print("3. When you reach the app dashboard, return here and press Enter.\n")
+    separator = "=" * 70
+    logger.info("")
+    logger.info(separator)
+    logger.info("AUTHENTICATION SETUP: %s", app_name)
+    logger.info(separator)
+    logger.info("Profile directory: %s", profile_dir)
+    logger.info("URL: %s", app_url)
+    logger.info("")
+    logger.info("Instructions:")
+    logger.info("1. Chrome will open with a dedicated profile.")
+    logger.info("2. Complete the login flow manually.")
+    logger.info("3. When you reach the app dashboard, return here and press Enter.")
+    logger.info("")
 
     logger.info("Launching Chrome", extra={"app": app_name, "profile": str(profile_dir)})
 
@@ -73,7 +77,7 @@ def launch_chrome_with_profile(app_name: str, app_url: str) -> None:
                 ],
                 viewport={"width": 1920, "height": 1080},
             )
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc: 
             logger.exception("Failed to launch Chrome", extra={"app": app_name})
             raise
 
@@ -89,14 +93,17 @@ def launch_chrome_with_profile(app_name: str, app_url: str) -> None:
                 logger.info("Created new page")
 
             logger.info("Navigating", extra={"url": app_url})
-            print(f"🌐 Opening {app_url}...")
+            logger.info("Opening %s...", app_url)
             try:
-                page.goto(app_url, wait_until="networkidle", timeout=30000)
+                page.goto(app_url, wait_until="domcontentloaded", timeout=60000)
+                page.wait_for_timeout(2000)
                 logger.info("Navigation successful", extra={"url": page.url})
-                print(f"✅ Page loaded: {page.url}\n")
-            except Exception as nav_error:  # noqa: BLE001
+                logger.info("Page loaded: %s", page.url)
+                logger.info("")
+            except Exception as nav_error: 
                 logger.error("Navigation failed", extra={"error": str(nav_error)})
-                print("⚠️  Navigation failed. Please navigate manually in Chrome.\n")
+                logger.info("WARNING: Navigation failed. Please navigate manually in Chrome.")
+                logger.info("")
 
             input("Press Enter after logging in and reaching the main app screen...")
             logger.info("User indicated login complete", extra={"app": app_name})
@@ -104,21 +111,27 @@ def launch_chrome_with_profile(app_name: str, app_url: str) -> None:
             context.close()
             logger.info("Chrome context closed", extra={"app": app_name})
 
-    print("\n✅ SUCCESS!")
-    print(f"   Saved Chrome profile for {app_name} at {profile_dir}")
-    print("   Future workflows will reuse this profile automatically.\n")
+    logger.info("")
+    logger.info("SUCCESS!")
+    logger.info("   Saved Chrome profile for %s at %s", app_name, profile_dir)
+    logger.info("   Future workflows will reuse this profile automatically.")
+    logger.info("")
 
 
 def main() -> None:
-    print("\n" + "=" * 70)
-    print("🔐 AUTHENTICATION SETUP FOR AI WORKFLOW CAPTURE")
-    print("=" * 70)
-    print("\nThis script saves Chrome profiles for each app to bypass Google SSO restrictions.\n")
+    separator = "=" * 70
+    logger.info("")
+    logger.info(separator)
+    logger.info("AUTHENTICATION SETUP FOR AI WORKFLOW CAPTURE")
+    logger.info(separator)
+    logger.info("")
+    logger.info("This script saves Chrome profiles for each app to bypass Google SSO restrictions.")
+    logger.info("")
 
     for idx, (name, url) in enumerate(APPS, start=1):
-        print(f"  {idx}. {name.title()} ({url})")
-    print(f"  {len(APPS) + 1}. All apps")
-    print("  0. Exit")
+        logger.info("  %d. %s (%s)", idx, name.title(), url)
+    logger.info("  %d. All apps", len(APPS) + 1)
+    logger.info("  0. Exit")
 
     choice = input("\nSelect app (number): ").strip()
 
@@ -126,12 +139,16 @@ def main() -> None:
         choice_num = int(choice)
     except ValueError:
         logger.warning("Non-numeric menu selection", extra={"choice": choice})
-        print("\n❌ Please enter a number\n")
+        logger.info("")
+        logger.info("Please enter a number")
+        logger.info("")
         return
 
     if choice_num == 0:
         logger.info("Auth setup exited by user")
-        print("\n👋 Goodbye!\n")
+        logger.info("")
+        logger.info("Goodbye!")
+        logger.info("")
         return
 
     if choice_num == len(APPS) + 1:
@@ -139,26 +156,36 @@ def main() -> None:
         for app_name, app_url in APPS:
             try:
                 launch_chrome_with_profile(app_name, app_url)
-                print("\n" + "─" * 70 + "\n")
+                logger.info("")
+                logger.info("%s", "─" * 70)
+                logger.info("")
                 time.sleep(2)
             except Exception as exc:  # noqa: BLE001
                 logger.exception("Auth setup failed", extra={"app": app_name})
-                print(f"\n❌ Error setting up {app_name}: {exc}\n")
+                logger.info("")
+                logger.error("Error setting up %s: %s", app_name, exc, exc_info=True)
+                logger.info("")
     elif 1 <= choice_num <= len(APPS):
         app_name, app_url = APPS[choice_num - 1]
         logger.info("Setting up auth for single app", extra={"app": app_name})
         launch_chrome_with_profile(app_name, app_url)
     else:
         logger.warning("Invalid menu choice", extra={"choice": choice_num})
-        print("\n❌ Invalid choice\n")
+        logger.info("")
+        logger.info("Invalid choice")
+        logger.info("")
         return
 
-    print("\n" + "=" * 70)
-    print("✅ SETUP COMPLETE")
-    print("=" * 70)
-    print("\nYou can now run:")
-    print("  python main.py")
-    print("\nWorkflows will reuse the saved Chrome profiles for seamless login.\n")
+    logger.info("")
+    logger.info(separator)
+    logger.info("SETUP COMPLETE")
+    logger.info(separator)
+    logger.info("")
+    logger.info("You can now run:")
+    logger.info("  python main.py")
+    logger.info("")
+    logger.info("Workflows will reuse the saved Chrome profiles for seamless login.")
+    logger.info("")
 
 
 if __name__ == "__main__":

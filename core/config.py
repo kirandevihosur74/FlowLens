@@ -16,13 +16,12 @@ class Config:
 
     OUTPUT_DIR = os.getenv("OUTPUT_DIR", "output")
     MAX_STEPS = int(os.getenv("MAX_STEPS", "15"))
+    MIN_SUCCESSFUL_ACTIONS = int(os.getenv("MIN_SUCCESSFUL_ACTIONS", "2"))
 
     APP_URLS = {
         "linear": "https://linear.app",
         "notion": "https://www.notion.so",
         "asana": "https://app.asana.com",
-        "github": "https://github.com",
-        "trello": "https://trello.com",
     }
 
     @classmethod
@@ -35,6 +34,15 @@ class Config:
 
     @classmethod
     def get_app_url(cls, app_name: str) -> str:
+        """Get URL for a known app.
+
+        Args:
+            app_name: App name (case-insensitive)
+
+        Returns:
+            URL string or empty string if not found
+        """
+
         return cls.APP_URLS.get(app_name.lower(), "")
 
 

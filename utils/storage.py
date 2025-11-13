@@ -10,7 +10,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
+import logging
+
 from utils.helpers import slugify
+
+
+logger = logging.getLogger(__name__)
 
 
 class WorkflowStorage:
@@ -21,6 +26,7 @@ class WorkflowStorage:
         self.base_dir.mkdir(exist_ok=True)
 
     def save_workflow(self, workflow_result: Dict[str, Any]) -> Path:
+        """Writes out the screenshots, metadata, and friendly docs for a single captured run."""
         app = workflow_result.get("app", "unknown")
         task = workflow_result.get("task", "unknown_task")
 
@@ -58,14 +64,16 @@ class WorkflowStorage:
         self._generate_readme(workflow_dir, metadata)
         self._generate_html(workflow_dir, metadata)
 
-        print(f"💾 Saved workflow to: {workflow_dir}\n")
+        logger.info("Saved workflow to: %s", workflow_dir)
+        logger.info("")
         return workflow_dir
 
     def _generate_readme(self, workflow_dir: Path, metadata: Dict[str, Any]) -> None:
+        """Builds a markdown summary so humans can skim the workflow without opening the HTML."""
         lines = [
             f"# {metadata.get('task', 'Workflow')}\n",
             f"**App**: {metadata.get('app', 'Unknown')}  ",
-            f"**Status**: {'✅ Success' if metadata.get('success') else '❌ Failed'}  ",
+            f"**Status**: {'Success' if metadata.get('success') else 'Failed'}  ",
             f"**Steps**: {metadata.get('total_steps', 0)}  ",
             f"**Date**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  \n",
             "---\n",
@@ -92,13 +100,14 @@ class WorkflowStorage:
         (workflow_dir / "README.md").write_text("\n".join(lines))
 
     def _generate_html(self, workflow_dir: Path, metadata: Dict[str, Any]) -> None:
+        """Produces the polished HTML walkthrough with screenshots and step metadata."""
         task = metadata.get("task", "Workflow")
         app = metadata.get("app", "Unknown")
         success = metadata.get("success", False)
         total_steps = metadata.get("total_steps", 0)
         screenshots = metadata.get("screenshots", [])
         status_color = "#10b981" if success else "#f59e0b"
-        status_text = "✓ Completed Successfully" if success else "⚠ Incomplete"
+        status_text = "Completed Successfully" if success else "Incomplete"
 
         html = f"""<!DOCTYPE html>
 <html lang=\"en\">
@@ -225,6 +234,7 @@ class WorkflowStorage:
         (workflow_dir / "guide.html").write_text(html)
 
     def list_workflows(self, app_name: str | None = None) -> List[Dict[str, Any]]:
+        """Scans the output directory and returns lightweight metadata for each stored workflow."""
         workflows: List[Dict[str, Any]] = []
         search_dir = self.base_dir / app_name if app_name else self.base_dir
 
@@ -251,6 +261,7 @@ class WorkflowStorage:
         return workflows
 
     def export_dataset(self, output_file: str = "dataset.json") -> Dict[str, Any]:
+        """Rolls up every workflow into a dataset file and companion README for the take-home deliverable."""
         all_workflows = self.list_workflows()
 
         by_app: Dict[str, List[Dict[str, Any]]] = {}
@@ -270,18 +281,26 @@ class WorkflowStorage:
         output_path.write_text(json.dumps(dataset, indent=2))
         self._generate_dataset_readme(dataset)
 
-        print("\n" + "=" * 70)
-        print("📦 DATASET EXPORTED")
-        print("=" * 70)
-        print(f"Location: {output_path}")
-        print(f"Total workflows: {len(all_workflows)}")
-        print(f"Successful: {dataset['successful_workflows']}/{len(all_workflows)}")
-        print(f"Apps: {', '.join(by_app.keys()) if by_app else 'None'}")
-        print("=" * 70 + "\n")
+        separator = "=" * 70
+        logger.info("")
+        logger.info(separator)
+        logger.info("DATASET EXPORTED")
+        logger.info(separator)
+        logger.info("Location: %s", output_path)
+        logger.info("Total workflows: %d", len(all_workflows))
+        logger.info(
+            "Successful: %d/%d",
+            dataset["successful_workflows"],
+            len(all_workflows),
+        )
+        logger.info("Apps: %s", ", ".join(by_app.keys()) if by_app else "None")
+        logger.info("%s", separator)
+        logger.info("")
 
         return dataset
 
     def _generate_dataset_readme(self, dataset: Dict[str, Any]) -> None:
+        """Writes a high-level README that explains what the dataset contains and how to browse it."""
         lines = [
             "# AI Workflow Capture - Dataset\n",
             f"**Generated**: {dataset['generated_at'][:10]}  ",
@@ -298,7 +317,7 @@ class WorkflowStorage:
             lines.append(f"### {app.title()}\n")
             lines.append(f"**Workflows**: {len(workflows)}\n")
             for workflow in workflows:
-                status = "✅" if workflow["success"] else "⚠️"
+                status = "SUCCESS" if workflow["success"] else "INCOMPLETE"
                 lines.append(
                     f"- {status} **{workflow['task']}** ({workflow['steps']} steps) — `{workflow['path']}`\n"
                 )
@@ -328,7 +347,7 @@ class WorkflowStorage:
 
         readme_path = self.base_dir / "README.md"
         readme_path.write_text("\n".join(lines))
-        print(f"📄 Generated dataset README: {readme_path}")
+        logger.info("Generated dataset README: %s", readme_path)
 
 
 __all__ = ["WorkflowStorage"]
