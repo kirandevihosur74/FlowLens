@@ -13,6 +13,9 @@ ai-workflow-capture/
 │   └── agent.py
 ├── capture/
 │   └── playwright_capture.py
+├── tests/
+│   ├── test_agent.py
+│   └── test_helpers.py
 ├── scripts/
 │   └── setup_auth.py
 ├── utils/
@@ -81,22 +84,23 @@ MAX_STEPS=15       # optional override
 
 ## Usage
 
-Interactive mode:
+Interactive CLI (default):
 
 ```bash
 python main.py
 ```
 
-Demo mode (captures sample workflows and builds a dataset):
+Explicit CLI commands are also available:
 
 ```bash
-python main.py --demo
+python main.py interactive   # same as running without args
+python main.py api           # read JSON from stdin
 ```
 
-API mode (read request from stdin, respond with JSON):
+API mode example:
 
 ```bash
-echo '{"task":"Create project","app_url":"https://linear.app"}' | python main.py --api
+echo '{"task":"Create project","app_url":"https://linear.app"}' | python main.py api
 ```
 
 ## Outputs
@@ -108,7 +112,15 @@ Runs generate `output/<app>/<task_slug_timestamp>/` containing:
 - `guide.html` – interactive gallery
 - `screenshots/` – PNG captures of each step
 
-`python main.py --demo` additionally compiles `output/dataset.json` and `output/README.md` summarizing every workflow.
+When one or more workflows complete successfully in a session, the system also compiles an aggregated dataset (`output/dataset.json` and `output/README.md`) via `WorkflowStorage.export_dataset()`.
+
+## Testing
+
+Run the automated checks with pytest:
+
+```bash
+python -m pytest
+```
 
 ## Notes
 
